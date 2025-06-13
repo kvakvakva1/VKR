@@ -1,5 +1,6 @@
 import random
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.animation as animation
@@ -68,49 +69,73 @@ class ForestFireAutomaton:
         Returns:
             List[List[float]]: Матрица влияния ветра.
         """
-        matrix = [[1.0 for _ in range(3)] for _ in range(3)]
+        matrix = [[0.5 for _ in range(3)] for _ in range(3)]
         matrix[1][1] = 0.0  # Центральная клетка (текущая) не учитывается
         
         if self.wind_speed == 0:
             return matrix
         
         # Коэффициенты уменьшения для основного и боковых направлений
-        main_reduction = max(0.1, 1 - self.wind_speed/30)
-        side_reduction = max(0.3, 1 - self.wind_speed/40)
+        main_boost = max(2.0, 1 + self.wind_speed/30)
+        side_boost = max(1.5, 1 + self.wind_speed/40)
         
         # Настройка матрицы в зависимости от направления ветра
         if self.wind_direction == WindDirection.N:
-            matrix[0][1] = main_reduction  # Север
-            matrix[0][0] = side_reduction  # Северо-запад
-            matrix[0][2] = side_reduction  # Северо-восток
+            matrix[0][1] *= main_boost  # Север
+            matrix[0][0] *= side_boost  # Северо-запад
+            matrix[0][2] *= side_boost  # Северо-восток
+            matrix[2][0] /= main_boost  # Юг
+            matrix[2][1] /= side_boost  # Юго-запад
+            matrix[2][2] /= side_boost  # Юго-восток
         elif self.wind_direction == WindDirection.NE:
-            matrix[0][2] = main_reduction  # Северо-восток
-            matrix[0][1] = side_reduction  # Север
-            matrix[1][2] = side_reduction  # Восток
+            matrix[0][2] *= main_boost  # Северо-восток
+            matrix[0][1] *= side_boost  # Север
+            matrix[1][2] *= side_boost  # Восток
+            matrix[2][0] /= main_boost  # Юго-запад
+            matrix[1][0] /= side_boost  # Запад
+            matrix[2][0] /= side_boost  # Юг
         elif self.wind_direction == WindDirection.E:
-            matrix[1][2] = main_reduction  # Восток
-            matrix[0][2] = side_reduction  # Северо-восток
-            matrix[2][2] = side_reduction  # Юго-восток
+            matrix[1][2] *= main_boost  # Восток
+            matrix[0][2] *= side_boost  # Северо-восток
+            matrix[2][2] *= side_boost  # Юго-восток
+            matrix[1][0] /= main_boost  # Запад
+            matrix[0][0] /= side_boost  # Северо-запад
+            matrix[2][0] /= side_boost  # Юго-запад
         elif self.wind_direction == WindDirection.SE:
-            matrix[2][2] = main_reduction  # Юго-восток
-            matrix[1][2] = side_reduction  # Восток
-            matrix[2][1] = side_reduction  # Юг
+            matrix[2][2] *= main_boost  # Юго-восток
+            matrix[1][2] *= side_boost  # Восток
+            matrix[2][1] *= side_boost  # Юг
+            matrix[0][0] /= main_boost  # Северо-запад
+            matrix[0][1] /= side_boost  # Север
+            matrix[1][0] /= side_boost  # Запад
         elif self.wind_direction == WindDirection.S:
-            matrix[2][1] = main_reduction  # Юг
-            matrix[2][0] = side_reduction  # Юго-запад
-            matrix[2][2] = side_reduction  # Юго-восток
+            matrix[2][1] *= main_boost  # Юг
+            matrix[2][0] *= side_boost  # Юго-запад
+            matrix[2][2] *= side_boost  # Юго-восток
+            matrix[0][1] /= main_boost  # Север
+            matrix[0][0] /= side_boost  # Северо-запад
+            matrix[0][2] /= side_boost  # Северо-восток
         elif self.wind_direction == WindDirection.SW:
-            matrix[2][0] = main_reduction  # Юго-запад
-            matrix[2][1] = side_reduction  # Юг
-            matrix[1][0] = side_reduction  # Запад
+            matrix[2][0] *= main_boost  # Юго-запад
+            matrix[2][1] *= side_boost  # Юг
+            matrix[1][0] *= side_boost  # Запад
+            matrix[0][2] /= main_boost  # Северо-восток
+            matrix[0][1] /= side_boost  # Север
+            matrix[1][2] /= side_boost  # Восток
         elif self.wind_direction == WindDirection.W:
-            matrix[1][0] = main_reduction  # Запад
-            matrix[0][0] = side_reduction  # Северо-запад
-            matrix[2][0] = side_reduction  # Юго-запад
+            matrix[1][0] *= main_boost  # Запад
+            matrix[0][0] *= side_boost  # Северо-запад
+            matrix[2][0] *= side_boost  # Юго-запад
+            matrix[1][2] /= main_boost  # Восток 
+            matrix[0][2] /= side_boost  # Северо-восток
+            matrix[2][2] /= side_boost  # Юго-восток
         elif self.wind_direction == WindDirection.NW:
-            matrix[0][0] = main_reduction  # Северо-запад
-            matrix[0][1] = side_reduction  # Север
-            matrix[1][0] = side_reduction  # Запад
+            matrix[0][0] *= main_boost  # Северо-запад
+            matrix[0][1] *= side_boost  # Север
+            matrix[1][0] *= side_boost  # Запад
+            matrix[2][2] /= main_boost  # Юго-восток
+            matrix[1][2] /= side_boost  # Восток
+            matrix[2][1] /= side_boost  # Юг
             
         return matrix
     
@@ -202,8 +227,8 @@ class ForestFireAutomaton:
                         weight = self.wind_effect_matrix[dy+1][dx+1]
                         
                         # Модификатор от высоты (+5% за каждый метр подъема)
-                        height_factor = 1.0 + 0.05 * height_diff
-                        weight *= height_factor
+                        # height_factor = 1.0 + 0.05 * height_diff
+                        # weight *= height_factor
                         
                         # Применяем вероятностный подход
                         if random.random() < weight:
