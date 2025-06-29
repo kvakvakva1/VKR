@@ -45,7 +45,7 @@ class LandCoverType(Enum):
             '#05450a', '#086a10', '#54a708', '#78d203', '#009900',
             '#c6b044', '#dcd159', '#dade48', '#fbff13', '#b6ff05',
             '#27ff87', '#c24f44', '#a5a5a5', '#ff6d4c', '#69fff8',
-            '#f9ffa4', '#1c0dff', 'yellow', 'red', 'orange', 'black'
+            '#f9ffa4', '#1c0dff', 'yellow', 'red', 'orange', '#4b4b4b'
         ]
         return colors.ListedColormap(colors_list)
 
@@ -72,7 +72,7 @@ class LandCoverType(Enum):
         """
         modifiers = {
             1: 0.9, 2: 0.7, 3: 0.8, 4: 0.6, 5: 0.75,
-            6: 0.5, 7: 0.6, 8: 0.4, 9: 0.3, 10: 0.2,
+            6: 0.5, 7: 0.5, 8: 0.4, 9: 0.3, 10: 0.2,
             11: 0.1, 12: 0.3, 13: 0.05, 14: 0.25, 15: 0.0,
             16: 0.05, 17: 0.0
         }

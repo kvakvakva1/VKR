@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.animation as animation
@@ -6,13 +7,16 @@ from .forest_fire_automaton import ForestFireAutomaton
 from .land_cover import LandCoverType
 from .cell import CellState
 from app.models.wind import WindDirection
+from .fuzzy_logic import FuzzyFireController
 
 class AnimatedForestFire(ForestFireAutomaton):
-    def __init__(self, land_cover_file: str, 
+    def __init__(self, land_cover_file: str,
+                 fuzzy_controller: FuzzyFireController, 
                  wind_direction: WindDirection = WindDirection.N, 
                  wind_speed: float = 0.0,
                  humidity: float = 50.0,
-                 temperature: float = 15.0):
+                 temperature: float = 15.0,
+                 output_dir: str = 'frames'):
         """
         Инициализация анимированной модели лесного пожара.
         
@@ -23,17 +27,19 @@ class AnimatedForestFire(ForestFireAutomaton):
             humidity (float): Влажность воздуха (по умолчанию 50.0%).
         """
         # Инициализация родительского класса ForestFireAutomaton
-        super().__init__(land_cover_file, wind_direction, wind_speed, humidity, temperature)
+        super().__init__(land_cover_file, fuzzy_controller, wind_direction, wind_speed, humidity, temperature)
+        self.current_frame = 0
+        self.max_frames = 0 
         
         # Создание фигуры и оси для анимации
         self.fig, self.ax = plt.subplots(figsize=(38.4, 21.6))
         
         # Настройка визуализации
         self.setup_visualization()
-        
+        self.output_dir = 'out'
+        os.makedirs(self.output_dir, exist_ok=True)
         # Инициализация переменных для анимации
         self.animation = None
-        self.i = 0  # Счетчик кадров
     
     def setup_visualization(self):
         """
@@ -52,7 +58,7 @@ class AnimatedForestFire(ForestFireAutomaton):
         self.img = self.ax.imshow(self.grid_numeric, cmap=self.cmap, norm=self.norm)
         
         # Настройка заголовка и внешнего вида
-        self.ax.set_title(f"Wind: {self.wind_direction.name} {self.wind_speed}m/s, Humidity: {self.humidity}%, Temp: {self.temperature}°C")
+        # self.ax.set_title(f"Wind: {self.wind_direction.name} {self.wind_speed}m/s, Humidity: {self.humidity}%, Temp: {self.temperature}°C")
         self.ax.axis('off')
         plt.tight_layout()
 
@@ -84,9 +90,14 @@ class AnimatedForestFire(ForestFireAutomaton):
         Returns:
             list: Список обновленных объектов для анимации.
         """
-        self.i = self.i + 1
-        if (self.i % 10 == 0):
-            print(f"Текущий кадр: {self.i}")
+        if self.current_frame > self.max_frames:
+            self.animation.event_source.stop()
+            return [self.img]
+
+        self.current_frame += 1
+
+        if (self.current_frame % 10 == 0):
+            print(f"Текущий кадр: {self.current_frame}")
         
         # Обновление состояния модели
         self.update()
@@ -98,7 +109,9 @@ class AnimatedForestFire(ForestFireAutomaton):
         self.img.set_array(self.grid_numeric)
         
         # Обновление заголовка
-        self.ax.set_title(f"Wind: {self.wind_direction.name} {self.wind_speed}m/s, Humidity: {self.humidity}%, Temp: {self.temperature}°C")
+        # self.ax.set_title(f"Wind: {self.wind_direction.name} {self.wind_speed}m/s, Humidity: {self.humidity}%, Temp: {self.temperature}°C")
+        frame_filename = os.path.join(self.output_dir, f"frame_{frame:04d}.png")
+        self.fig.savefig(frame_filename, bbox_inches='tight', pad_inches=0, transparent=True)
         
         return [self.img]
     
@@ -113,6 +126,8 @@ class AnimatedForestFire(ForestFireAutomaton):
         Returns:
             animation.FuncAnimation: Объект анимации.
         """
+        self.current_frame = 0
+        self.max_frames = frames
         # Остановка предыдущей анимации, если она существует
         if hasattr(self, 'animation') and self.animation is not None:
             self.animation.event_source.stop()
@@ -123,7 +138,8 @@ class AnimatedForestFire(ForestFireAutomaton):
             self.update_frame, 
             frames=frames,
             interval=interval,
-            blit=True  # Оптимизация для анимации
+            blit=True,  # Оптимизация для анимации
+            repeat=False
         )
         
         return self.animation
